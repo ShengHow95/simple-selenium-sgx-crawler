@@ -7,6 +7,7 @@ from selenium.common.exceptions import TimeoutException
 from selenium.common.exceptions import NoSuchElementException
 
 import os
+import glob
 import time
 import datetime
 import logging
@@ -28,6 +29,8 @@ parser.add_argument("--number-of-dates", type=int, default=-1, choices=[-1, 1, 2
                     help="Number of dates to retrieve (Default: -1, for all available dates)")
 parser.add_argument("--type-of-data", type=str.lower, default="All", choices=typeOfDataChoice,
                     help="Type of data to retrieve (Default: all)")
+parser.add_argument("--headless-mode", action="store_true",
+                    help="Headless mode (Run at background without open up the browser)")
 args = parser.parse_args()
 
 waitTime = args.waittime
@@ -74,7 +77,9 @@ def actionAfterErrorOrFailureCaptured():
 
 # instantiate a chrome options object so you can set the size and headless preference
 chrome_options = Options()
-# chrome_options.add_argument("--headless")
+
+if(args.headless_mode):
+    chrome_options.add_argument("--headless")
 chrome_options.add_argument("--window-size=1920x1080")
 chrome_options.add_argument("--start-maximised")
 chrome_options.add_argument("--disable-notifications")
@@ -149,7 +154,7 @@ try:
         # get all options and select an option
         typeOfDataInputSelect.click()
         typeOfDataOptions =  driver.find_elements_by_css_selector(".sgx-select-picker-list .sgx-select-picker-option label .sgx-select-picker-label")
-        if(args.type_of_data == "All"):
+        if(args.type_of_data == "all"):
             typeOfDataOptions[i].click()
             logger.debug(typeOfData[i] + " [SET]")
         else:
@@ -188,26 +193,37 @@ try:
             driver.implicitly_wait(waitTime)
             time.sleep(1)
 
-    # wait until no more downloads
-    driver.get('chrome://downloads/')
-    WebDriverWait(driver, waitTime).until(EC.presence_of_element_located((By.CSS_SELECTOR, 'body/deep/downloads-manager')))
-    logger.info("Chrome Download Page [LOADED]")
+    if not(args.headless_mode):
+        # wait until no more downloads
+        driver.get('chrome://downloads/')
+        WebDriverWait(driver, waitTime).until(EC.presence_of_element_located((By.CSS_SELECTOR, 'body/deep/downloads-manager')))
+        logger.info("Chrome Download Page [LOADED]")
 
-    # get downloads-manager element 
-    manager = driver.find_element_by_css_selector('body/deep/downloads-manager')
-    downloadInProgress = True
-    while downloadInProgress:
-        for item in manager.find_elements_by_css_selector('body/deep/downloads-item'):
-            shadow = driver.execute_script('return arguments[0].shadowRoot;', item)
-            text = shadow.find_element_by_css_selector('paper-button').text
-            print(text)
-            if text == 'PAUSE':
+        # get downloads-manager element 
+        manager = driver.find_element_by_css_selector('body/deep/downloads-manager')
+        
+        logger.info("Check Download Progress [START]")
+        downloadInProgress = True
+        while downloadInProgress:
+            for item in manager.find_elements_by_css_selector('body/deep/downloads-item'):
+                shadow = driver.execute_script('return arguments[0].shadowRoot;', item)
+                text = shadow.find_element_by_css_selector('paper-button').text
+                if text == 'PAUSE':
+                    break
+            else:
+                downloadInProgress=False
                 break
-        else:
-            downloadInProgress=False
-            break
-    
-    logger.info("Downloading Process [COMPLETED]")
+        logger.info("Check Download Progress [END]")
+    else:
+        logger.info("Check Download Progress (headless mode) [START]")
+        downloadInProgress = True
+        while downloadInProgress:
+            for name in glob.glob(downloadPath + '*.crdownload'):
+                time.sleep(3)
+                break
+            else:
+                downloadInProgress = False
+        logger.info("Check Download Progress (headless mode) [END]")
 
 except TimeoutException as e:
     logger.error(e)
