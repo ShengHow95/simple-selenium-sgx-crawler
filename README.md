@@ -30,3 +30,35 @@ The command line options provided are:
 `python SGX.py -wt 10 --type-of-data tick --number-of-dates 2`
 
 `python SGX.py -wt 7 --number-of-dates 1 --headless`
+
+
+#### To run this project in an Linux Cloud Instances
+
+1. Create a Linux Instance, update the system, Install Pip for Python3 and Unzip
+```
+sudo apt update
+sudo apt install python3-pip
+sudo apt install unzip
+```
+
+2. Install Required Python Modules
+```
+pip3 install selenium
+pip3 install crontab
+```
+
+3. Download Google Chrome and ChromeDriver for Linux
+```
+wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
+echo 'deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main' | sudo tee /etc/apt/sources.list.d/google-chrome.list
+sudo apt-get update 
+sudo apt-get install google-chrome-stable
+
+wget https://chromedriver.storage.googleapis.com/83.0.4103.39/chromedriver_linux64.zip
+unzip chromedriver_linux64.zip
+chmod +x chromedriver
+
+sudo mv -f chromedriver /usr/local/share/chromedriver
+sudo ln -s /usr/local/share/chromedriver /usr/local/bin/chromedriver
+sudo ln -s /usr/local/share/chromedriver /usr/bin/chromedriver
+```
